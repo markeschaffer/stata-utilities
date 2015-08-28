@@ -1,0 +1,11 @@
+v 3
+d Mark E Schaffer, Heriot-Watt University (m.e.schaffer@hw.ac.uk)
+d This stata.toc cloned from Sergio Correira's for reghdfe
+p fvstrip FVSTRIP - Stata utility for removing b/n/o operators from factor variables
+
+
+* l word-to-show path-or-url [description]
+* t: Directories within site:
+* t path [description]
+* Packages:
+* p pkgname [description]
