@@ -1,3 +1,2 @@
 # stata-utilities
-Miscellaneous Stata utilities
-Misc utilities etc.
+Miscellaneous Stata utilities - start with fvstrip.ado
