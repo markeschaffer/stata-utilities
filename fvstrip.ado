@@ -35,7 +35,7 @@ program define fvstrip, rclass
 				local unstripped	`unstripped' `vn'	//  add to list only if not omitted
 			}
 		}
-		else {														//  add varname to list even if
+		else {								//  add varname to list even if
 			local unstripped		`unstripped' `vn'	//  could be omitted (b. or o.)
 		}
 	}
