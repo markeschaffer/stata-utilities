@@ -1,6 +1,6 @@
 d fvstrip - Stata utility for removing b/n/o operators in factor variables
 d
-d Author: Mark Schaffer, Heriot-Watt University, m.e.schaffer@hw.ac.uk
+d Author: Mark E Schaffer, Heriot-Watt University, m.e.schaffer@hw.ac.uk
 
 f fvstrip.ado
 f fvstrip.sthlp
