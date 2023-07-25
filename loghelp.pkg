@@ -1,0 +1,6 @@
+d loghelp - Stata utility for creating a log file from a Stata help file
+d
+d Author: Mark E Schaffer, Heriot-Watt University, m.e.schaffer@hw.ac.uk
+
+f loghelp.ado
+f loghelp.sthlp
