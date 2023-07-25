@@ -4,26 +4,60 @@
 
 program define loghelp, rclass
     version 16.0
-	syntax using, inputname(string) [smcl text append replace msg vsquish]
+	syntax using, inputname(string) [ smcl text append replace msg vsquish makedo(string) ]
 	
 	// default is no log message
 	if "`msg'"=="" local nomsg nomsg
 	// no newlines between Stata outputs
 	local vsquishflag = ("`vsquish'"~="")
+	if "`makedo'"~="" {
+		tokenize "`makedo'", parse(",")
+		// remove option if present
+		local makedo `1'.do
+		// replace or append?
+		if "`3'"=="replace"			local mode w
+		else if "`3'"=="append"		local mode a
+		else if "`3'"=="" {
+			// default is create a new file
+			local mode w
+			// but exit with error if it already exists
+			cap confirm file `makedo'
+			if _rc==0 {
+				di as err "error - `makedo' already exists; must specify replace or append"
+				exit 602
+			}
+		}
+		else {
+			di as err "error - unknown makedo option"
+			exit 198
+		}
+	}
 
 	log `using', `smcl' `text' `append' `replace' `nomsg'
 	// blank line follwing opening message if requested
 	if "`msg'"~="" di
-	mata: m_loghelp("`inputname'",`vsquishflag')
+	mata: m_loghelp("`inputname'",`vsquishflag', "`makedo'", "`mode'")
 	log close
+
 end
 
 mata:
 
-void m_loghelp(string scalar inputname,
-				real scalar vsquishflag) {
-
+void m_loghelp(	string scalar inputname,
+				real scalar vsquishflag,
+				string scalar makedo,
+				string scalar mode)
+{
+	makedoflag = (makedo~="")
 	fh_in  = fopen(inputname, "r")
+	if ((makedoflag) & (mode=="w")) {
+		// delete existing do file prior to writing
+		unlink(makedo)
+	}
+	if (makedoflag) {
+		// open do file for writing or appending
+		fh_do = fopen(makedo, mode)
+	}
 	printf("{txt}")
 	while ((line=fget(fh_in))!=J(0,0,"")) {
 		if (strmatch(line,"*{stata*")) {
@@ -50,6 +84,10 @@ void m_loghelp(string scalar inputname,
 			else {
 				printf("{txt}")
 			}
+			// write to the do file if requested
+			if (makedoflag) {
+				fput(fh_do,line)
+			}
 		}
 		else {
 			// line is not a stata command
@@ -57,7 +95,12 @@ void m_loghelp(string scalar inputname,
 			printf("\n")
 		}
 	}
+	// close input file
 	fclose(fh_in)
+	if (makedoflag) {
+		// close do file if created
+		fclose(fh_do)
+	}
 }
 
 end
