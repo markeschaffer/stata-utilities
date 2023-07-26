@@ -1,10 +1,10 @@
-*! loghelp v1.0
-*! last edited: 25 july 2023
+*! loghelp v1.1
+*! last edited: 26 july 2023
 *! author: ms
 
 program define loghelp, rclass
     version 16.0
-	syntax using, inputname(string) [ smcl text append replace msg vsquish makedo(string) ]
+	syntax using, inputname(string) [ smcl text append replace msg vsquish makedo(string) allcmd ]
 	
 	// default is no log message
 	if "`msg'"=="" local nomsg nomsg
@@ -32,11 +32,14 @@ program define loghelp, rclass
 			exit 198
 		}
 	}
+	if "`makedo'"~="" & "`allcmd'"~=""		local makedoflag 2
+	else if "`makedo'"~=""					local makedoflag 1
+	else									local makedoflag 0
 
 	log `using', `smcl' `text' `append' `replace' `nomsg'
 	// blank line follwing opening message if requested
 	if "`msg'"~="" di
-	mata: m_loghelp("`inputname'",`vsquishflag', "`makedo'", "`mode'")
+	mata: m_loghelp("`inputname'",`vsquishflag', `makedoflag', "`makedo'", "`mode'")
 	log close
 
 end
@@ -45,10 +48,10 @@ mata:
 
 void m_loghelp(	string scalar inputname,
 				real scalar vsquishflag,
+				real scalar makedoflag,			// 0=no do create, 1=clickable only, 2=all
 				string scalar makedo,
 				string scalar mode)
 {
-	makedoflag = (makedo~="")
 	fh_in  = fopen(inputname, "r")
 	if ((makedoflag) & (mode=="w")) {
 		// delete existing do file prior to writing
@@ -61,7 +64,7 @@ void m_loghelp(	string scalar inputname,
 	printf("{txt}")
 	while ((line=fget(fh_in))!=J(0,0,"")) {
 		if (strmatch(line,"*{stata*")) {
-			// line is a stata command
+			// line is a clickable stata command
 			// remove start of line
 			spos = strpos(line,"{stata")
 			line = substr(line,spos+6,.)
@@ -71,13 +74,20 @@ void m_loghelp(	string scalar inputname,
 			line = substr(line,spos+1,.)
 			// look for " (ascii 34) that ends the string
 			spos = strrpos(line,char(34))
-			// and remove it any any following chars (smcl etc.)
+			// and remove it and any following chars (smcl etc.)
 			slen = strlen(line)
 			line = substr(line,1,spos-1)
 			// echo line and execute it
 			printf("{input}. %s\n",line)
+			// but only if it's not loghelp (to prevent a recursion error)
+			spos = strpos(line,"loghelp ")
+			if (spos==0) {
+				stata(line)
+			}
+			else {
+				printf("{res}(warning - call to loghelp command not executed)")
+			}
 			// print blank line unless vsquish specified
-			stata(line)
 			if (vsquishflag==0) {
 				printf("{txt}\n")
 			}
@@ -90,9 +100,25 @@ void m_loghelp(	string scalar inputname,
 			}
 		}
 		else {
-			// line is not a stata command
+			// line is not a clickable stata command
 			printf(line)
 			printf("\n")
+			// write to do file if requested and a non-clickable stata command
+			if ((makedoflag==2) & (strmatch(line,"*{cmd:. *"))) {
+				// line is a non-clickable stata command
+				// remove start of line
+				spos = strpos(line,"{cmd:. ")
+				line = substr(line,spos+7,.)
+				// line may end with a {p_end}; if so, remove it
+				line = subinstr(line,"{p_end}","")
+				// look for } that ends the smcl {cmd: statement
+				spos = strrpos(line,"}")
+				// and remove it and any following chars (smcl etc.)
+				slen = strlen(line)
+				line = substr(line,1,spos-1)
+				// write to do file
+				fput(fh_do,line)
+			}
 		}
 	}
 	// close input file
